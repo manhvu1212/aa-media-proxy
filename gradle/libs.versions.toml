@@ -1,0 +1,21 @@
+[versions]
+agp = "8.13.2"
+kotlin = "2.1.0"
+coreKtx = "1.15.0"
+appcompat = "1.7.0"
+media3 = "1.5.1"
+activity = "1.9.3"
+carApp = "1.4.0"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activity" }
+androidx-car-app = { group = "androidx.car.app", name = "app", version.ref = "carApp" }
+media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
+media3-common = { group = "androidx.media3", name = "media3-common", version.ref = "media3" }
+guava = { group = "com.google.guava", name = "guava", version = "33.3.1-android" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

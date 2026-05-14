@@ -1,0 +1,19 @@
+*.iml
+.gradle/
+.kotlin/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+**/build/
+/captures/
+.externalNativeBuild
+.cxx
+local.properties
+*.jks
+*.keystore
+release/
+
+# Local debug artifacts (extracted jar contents, ad-hoc dumps).
+/androidx/
+/test_notif*.png
