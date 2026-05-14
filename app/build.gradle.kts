@@ -15,6 +15,34 @@ android {
         versionName = "0.1.0"
     }
 
+    // Release signing reads from ~/.gradle/gradle.properties (or matching env vars) so
+    // the upload keystore never lives in the repo. The keystore is shared across all of
+    // this developer's apps; PKCS12 uses one password for both store and key. Recognized
+    // keys (gradle property name = env var name):
+    //   NMV_KEYSTORE        absolute path to the .p12 / .jks
+    //   NMV_KEYSTORE_PASS   password (used for both store and key)
+    // The per-app alias is fixed in code — it's an identifier, not a secret.
+    // When credentials are missing we fall back to debug signing so `bundleRelease` still
+    // works locally for smoke testing without forcing contributors to provision the key.
+    fun cred(name: String): String? =
+        (findProperty(name) as String?)?.takeIf { it.isNotBlank() }
+            ?: System.getenv(name)?.takeIf { it.isNotBlank() }
+
+    val releaseKeystorePath = cred("NMV_KEYSTORE")
+    val releaseKeystorePass = cred("NMV_KEYSTORE_PASS")
+    val releaseSigningReady = releaseKeystorePath != null && releaseKeystorePass != null
+
+    signingConfigs {
+        if (releaseSigningReady) {
+            create("release") {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = releaseKeystorePass
+                keyAlias = "aa-media-proxy"
+                keyPassword = releaseKeystorePass
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -23,7 +51,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (releaseSigningReady) {
+                signingConfigs.getByName("release")
+            } else {
+                logger.warn(
+                    "NMV_KEYSTORE / NMV_KEYSTORE_PASS not set — release build will be " +
+                        "signed with the debug key. Do NOT upload this artifact to Play."
+                )
+                signingConfigs.getByName("debug")
+            }
         }
         debug {
             isMinifyEnabled = false

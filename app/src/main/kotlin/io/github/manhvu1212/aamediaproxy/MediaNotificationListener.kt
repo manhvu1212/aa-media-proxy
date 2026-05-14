@@ -181,12 +181,11 @@ class MediaNotificationListener : NotificationListenerService() {
 
         selectController(selected)
 
-        // TEMP: AA gate disabled for local proxy-session testing — always forward to
-        // PlaybackService so we can verify the bridging works without an actual AA
-        // connection. Re-enable the `if (aaConnected)` wrap before shipping.
-        // if (aaConnected) {
-        PlaybackService.onSourceControllerChanged(this, selected)
-        // }
+        // Only spin up the proxy session when AA is on the other end. Without AA there's
+        // no consumer, and creating a MediaSession just clutters the phone's media UI.
+        if (aaConnected) {
+            PlaybackService.onSourceControllerChanged(this, selected)
+        }
     }
 
     private fun selectController(newController: MediaController?) {
