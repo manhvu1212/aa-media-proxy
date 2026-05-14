@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AA Media Proxy</string>
+    <string name="listener_label">Ponte de mídia</string>
+    <string name="status_listener_missing">Acesso a notificações não concedido</string>
+    <string name="status_listener_ok">Acesso a notificações: OK</string>
+    <string name="status_no_session">Nenhuma sessão de mídia sendo encaminhada</string>
+    <string name="status_active">Encaminhando sessão de mídia para o Android Auto</string>
+    <string name="action_open_settings">Abrir configurações de Acesso a notificações</string>
+    <string name="action_refresh">Atualizar status</string>
+    <string name="instructions">Este app encaminha apps de mídia (YouTube, Podcasts, etc.) que não têm suporte nativo ao Android Auto.\n\n1) Conceda Acesso a notificações a este app.\n2) Reproduza mídia em qualquer app.\n3) Abra o Android Auto (Modo desenvolvedor + Fontes desconhecidas devem estar ativados).\n4) O widget de mídia \"AA Media Proxy\" aparecerá.\n\nObservação: apps que já oferecem suporte ao Android Auto (como Spotify, YouTube Music) são ignorados para evitar widgets duplicados.</string>
+    <string name="now_playing_header">Tocando agora</string>
+    <string name="no_media_title">Sem mídia</string>
+    <string name="no_media_subtitle">Reproduza mídia em qualquer app para vê-la aqui</string>
+    <string name="state_playing">▶  Reproduzindo</string>
+    <string name="state_paused">⏸  Pausado</string>
+    <string name="state_idle">⏹  Inativo</string>
+    <string name="state_buffering">⟳  Carregando…</string>
+    <string name="source_package">Origem: %1$s</string>
+</resources>

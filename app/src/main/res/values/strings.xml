@@ -2,19 +2,19 @@
 <resources>
     <string name="app_name">AA Media Proxy</string>
     <string name="listener_label">Media Bridge</string>
-    <string name="status_listener_missing">Notification Access chưa được cấp quyền</string>
+    <string name="status_listener_missing">Notification Access not granted</string>
     <string name="status_listener_ok">Notification Access: OK</string>
-    <string name="status_no_session">Chưa có phiên media nào đang được bridge</string>
-    <string name="status_active">Đang proxy phiên media tới Android Auto</string>
-    <string name="action_open_settings">Mở cài đặt Notification Access</string>
-    <string name="action_refresh">Làm mới trạng thái</string>
-    <string name="instructions">App này bridge mọi app phát media (YouTube, Podcast, v.v.) chưa hỗ trợ Android Auto.\n\n1) Cấp quyền Notification Access cho app này.\n2) Phát media trong app bất kỳ.\n3) Mở Android Auto (Developer Mode + Unknown Sources phải bật).\n4) Widget media \"AA Media Proxy\" sẽ xuất hiện.\n\nGhi chú: các app đã hỗ trợ Android Auto sẵn (như Spotify, YouTube Music) sẽ được bỏ qua để tránh trùng widget.</string>
-    <string name="now_playing_header">Đang phát</string>
-    <string name="no_media_title">Chưa có media</string>
-    <string name="no_media_subtitle">Phát media trong một app bất kỳ để xem thông tin tại đây</string>
-    <string name="state_playing">▶  Đang phát</string>
-    <string name="state_paused">⏸  Tạm dừng</string>
-    <string name="state_idle">⏹  Không hoạt động</string>
-    <string name="state_buffering">⟳  Đang đệm…</string>
-    <string name="source_package">Nguồn: %1$s</string>
+    <string name="status_no_session">No media session is being bridged</string>
+    <string name="status_active">Bridging media session to Android Auto</string>
+    <string name="action_open_settings">Open Notification Access settings</string>
+    <string name="action_refresh">Refresh status</string>
+    <string name="instructions">This app bridges media apps (YouTube, Podcasts, etc.) that don\'t support Android Auto natively.\n\n1) Grant Notification Access to this app.\n2) Play media in any app.\n3) Open Android Auto (Developer Mode + Unknown Sources must be enabled).\n4) The \"AA Media Proxy\" media widget will appear.\n\nNote: apps that already support Android Auto (such as Spotify, YouTube Music) are skipped to avoid duplicate widgets.</string>
+    <string name="now_playing_header">Now playing</string>
+    <string name="no_media_title">No media</string>
+    <string name="no_media_subtitle">Play media in any app to see it appear here</string>
+    <string name="state_playing">▶  Playing</string>
+    <string name="state_paused">⏸  Paused</string>
+    <string name="state_idle">⏹  Idle</string>
+    <string name="state_buffering">⟳  Buffering…</string>
+    <string name="source_package">Source: %1$s</string>
 </resources>

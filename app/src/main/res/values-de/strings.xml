@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AA Media Proxy</string>
+    <string name="listener_label">Medienbrücke</string>
+    <string name="status_listener_missing">Mitteilungszugriff nicht gewährt</string>
+    <string name="status_listener_ok">Mitteilungszugriff: OK</string>
+    <string name="status_no_session">Keine Mediensitzung wird weitergeleitet</string>
+    <string name="status_active">Mediensitzung wird an Android Auto weitergeleitet</string>
+    <string name="action_open_settings">Einstellungen für Mitteilungszugriff öffnen</string>
+    <string name="action_refresh">Status aktualisieren</string>
+    <string name="instructions">Diese App leitet Medien-Apps (YouTube, Podcasts usw.) weiter, die Android Auto nicht nativ unterstützen.\n\n1) Gewähre dieser App Mitteilungszugriff.\n2) Starte die Wiedergabe in einer beliebigen App.\n3) Öffne Android Auto (Entwicklermodus + Unbekannte Quellen müssen aktiviert sein).\n4) Das Medien-Widget \"AA Media Proxy\" wird angezeigt.\n\nHinweis: Apps, die Android Auto bereits unterstützen (z. B. Spotify, YouTube Music), werden übersprungen, um doppelte Widgets zu vermeiden.</string>
+    <string name="now_playing_header">Aktuelle Wiedergabe</string>
+    <string name="no_media_title">Keine Medien</string>
+    <string name="no_media_subtitle">Starte die Wiedergabe in einer App, um sie hier zu sehen</string>
+    <string name="state_playing">▶  Wiedergabe</string>
+    <string name="state_paused">⏸  Pausiert</string>
+    <string name="state_idle">⏹  Inaktiv</string>
+    <string name="state_buffering">⟳  Puffert…</string>
+    <string name="source_package">Quelle: %1$s</string>
+</resources>

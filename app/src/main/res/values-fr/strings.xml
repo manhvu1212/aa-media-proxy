@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AA Media Proxy</string>
+    <string name="listener_label">Pont multimédia</string>
+    <string name="status_listener_missing">Accès aux notifications non accordé</string>
+    <string name="status_listener_ok">Accès aux notifications : OK</string>
+    <string name="status_no_session">Aucune session multimédia n\'est relayée</string>
+    <string name="status_active">Relais de la session multimédia vers Android Auto</string>
+    <string name="action_open_settings">Ouvrir les paramètres d\'accès aux notifications</string>
+    <string name="action_refresh">Actualiser le statut</string>
+    <string name="instructions">Cette application relaie les applications multimédias (YouTube, podcasts, etc.) qui ne prennent pas en charge nativement Android Auto.\n\n1) Accordez l\'accès aux notifications à cette application.\n2) Lisez du contenu dans n\'importe quelle application.\n3) Ouvrez Android Auto (le mode développeur et les sources inconnues doivent être activés).\n4) Le widget multimédia « AA Media Proxy » apparaîtra.\n\nRemarque : les applications qui prennent déjà en charge Android Auto (comme Spotify ou YouTube Music) sont ignorées pour éviter les widgets en double.</string>
+    <string name="now_playing_header">En cours de lecture</string>
+    <string name="no_media_title">Aucun média</string>
+    <string name="no_media_subtitle">Lisez un média dans une application pour le voir apparaître ici</string>
+    <string name="state_playing">▶  En lecture</string>
+    <string name="state_paused">⏸  En pause</string>
+    <string name="state_idle">⏹  Inactif</string>
+    <string name="state_buffering">⟳  Chargement…</string>
+    <string name="source_package">Source : %1$s</string>
+</resources>

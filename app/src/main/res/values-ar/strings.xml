@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AA Media Proxy</string>
+    <string name="listener_label">جسر الوسائط</string>
+    <string name="status_listener_missing">لم يتم منح الوصول إلى الإشعارات</string>
+    <string name="status_listener_ok">الوصول إلى الإشعارات: OK</string>
+    <string name="status_no_session">لا توجد جلسة وسائط قيد التوصيل</string>
+    <string name="status_active">جارٍ توصيل جلسة الوسائط إلى Android Auto</string>
+    <string name="action_open_settings">فتح إعدادات الوصول إلى الإشعارات</string>
+    <string name="action_refresh">تحديث الحالة</string>
+    <string name="instructions">يقوم هذا التطبيق بتوصيل تطبيقات الوسائط (YouTube، البودكاست، إلخ) التي لا تدعم Android Auto أصلاً.\n\n1) امنح هذا التطبيق الوصول إلى الإشعارات.\n2) شغّل وسائط في أي تطبيق.\n3) افتح Android Auto (يجب تفعيل وضع المطور والمصادر غير المعروفة).\n4) ستظهر أداة الوسائط \"AA Media Proxy\".\n\nملاحظة: يتم تخطي التطبيقات التي تدعم Android Auto بالفعل (مثل Spotify وYouTube Music) لتجنب تكرار الأدوات.</string>
+    <string name="now_playing_header">قيد التشغيل الآن</string>
+    <string name="no_media_title">لا توجد وسائط</string>
+    <string name="no_media_subtitle">شغّل وسائط في أي تطبيق لتظهر هنا</string>
+    <string name="state_playing">▶  قيد التشغيل</string>
+    <string name="state_paused">⏸  متوقف مؤقتًا</string>
+    <string name="state_idle">⏹  خامل</string>
+    <string name="state_buffering">⟳  جارٍ التحميل…</string>
+    <string name="source_package">المصدر: %1$s</string>
+</resources>
