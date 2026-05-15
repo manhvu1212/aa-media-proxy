@@ -17,3 +17,6 @@ release/
 # Local debug artifacts (extracted jar contents, ad-hoc dumps).
 /androidx/
 /test_notif*.png
+
+# Generated Play Store assets — derived from res/, regenerate as needed.
+/play-assets/
