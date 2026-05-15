@@ -4,8 +4,10 @@ import android.graphics.Bitmap
 import android.media.session.MediaController
 import android.media.session.PlaybackState
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.MainThread
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -74,12 +76,11 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
 
     override fun getState(): State {
         val controller = sourceController
-        val commands = Player.Commands.Builder()
+        val commandsBuilder = Player.Commands.Builder()
             .add(Player.COMMAND_PLAY_PAUSE)
             .add(Player.COMMAND_GET_CURRENT_MEDIA_ITEM)
             .add(Player.COMMAND_GET_METADATA)
             .add(Player.COMMAND_GET_TIMELINE)
-            .build()
 
         // No source attached: return a truly empty playlist so the underlying platform
         // MediaSession clears its metadata. If we kept a placeholder MediaItem here,
@@ -91,7 +92,7 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
             // from the now-detached source.
             encodeArtwork(null)
             return State.Builder()
-                .setAvailableCommands(commands)
+                .setAvailableCommands(commandsBuilder.build())
                 .setPlaybackState(Player.STATE_IDLE)
                 .setPlayWhenReady(false, Player.PLAY_WHEN_READY_CHANGE_REASON_REMOTE)
                 .setPlaylist(emptyList())
@@ -100,6 +101,23 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
 
         val pbState = controller.playbackState
         val sourceMeta = controller.metadata
+        val actions = pbState?.actions ?: 0L
+
+        // Only advertise transport commands the source actually supports. AA renders
+        // the skip / seek buttons as enabled iff we add them here; if we add them
+        // unconditionally, the user can press skip on something like a podcast app that
+        // doesn't expose it and the press is silently swallowed by the platform side.
+        if (actions and PlaybackState.ACTION_SKIP_TO_NEXT != 0L) {
+            commandsBuilder.add(Player.COMMAND_SEEK_TO_NEXT)
+            commandsBuilder.add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+        }
+        if (actions and PlaybackState.ACTION_SKIP_TO_PREVIOUS != 0L) {
+            commandsBuilder.add(Player.COMMAND_SEEK_TO_PREVIOUS)
+            commandsBuilder.add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+        }
+        if (actions and PlaybackState.ACTION_SEEK_TO != 0L) {
+            commandsBuilder.add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
+        }
 
         val isPlaying = pbState?.state == PlaybackState.STATE_PLAYING
         val title = sourceMeta?.getString(android.media.MediaMetadata.METADATA_KEY_TITLE)
@@ -111,6 +129,12 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
             ?: sourceMeta?.getBitmap(android.media.MediaMetadata.METADATA_KEY_ALBUM_ART)
             ?: sourceMeta?.getBitmap(android.media.MediaMetadata.METADATA_KEY_DISPLAY_ICON)
         val artBytes = encodeArtwork(artBitmap)
+
+        // Duration: platform METADATA_KEY_DURATION is in ms; Media3 wants μs. A non-
+        // positive value means "unknown" (live streams report 0 or -1) — represent
+        // that as TIME_UNSET so AA doesn't render a 0:00 timeline.
+        val durationMs = sourceMeta?.getLong(android.media.MediaMetadata.METADATA_KEY_DURATION) ?: 0L
+        val durationUs = if (durationMs > 0L) durationMs * 1_000L else C.TIME_UNSET
 
         val metadataBuilder = MediaMetadata.Builder()
             .setTitle(title)
@@ -128,18 +152,34 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
             .setMediaMetadata(metadataBuilder.build())
             .build()
 
+        val mediaItemDataBuilder = MediaItemData.Builder(ACTIVE_MEDIA_ID)
+            .setMediaItem(mediaItem)
+            .setDurationUs(durationUs)
+
+        // Snapshot position + the elapsed-realtime clock reading it was sampled at, so
+        // the supplier can extrapolate forward while playing. Without this, the seek
+        // bar in AA would freeze at whatever position we happened to publish — pause/
+        // resume events fire when the *state* changes, but the position keeps moving
+        // between events.
+        val basePositionMs = pbState?.position ?: 0L
+        val baseUpdateTime = pbState?.lastPositionUpdateTime ?: 0L
+        val playbackSpeed = pbState?.playbackSpeed ?: 1f
+        val positionSupplier = PositionSupplier {
+            if (isPlaying && baseUpdateTime > 0L) {
+                val elapsed = SystemClock.elapsedRealtime() - baseUpdateTime
+                basePositionMs + (elapsed * playbackSpeed).toLong()
+            } else {
+                basePositionMs
+            }
+        }
+
         return State.Builder()
-            .setAvailableCommands(commands)
+            .setAvailableCommands(commandsBuilder.build())
             .setPlaybackState(Player.STATE_READY)
             .setPlayWhenReady(isPlaying, Player.PLAY_WHEN_READY_CHANGE_REASON_REMOTE)
-            .setPlaylist(
-                listOf(
-                    MediaItemData.Builder(ACTIVE_MEDIA_ID)
-                        .setMediaItem(mediaItem)
-                        .build()
-                )
-            )
+            .setPlaylist(listOf(mediaItemDataBuilder.build()))
             .setCurrentMediaItemIndex(0)
+            .setContentPositionMs(positionSupplier)
             .build()
     }
 
@@ -148,6 +188,24 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
         Log.i(TAG, "handleSetPlayWhenReady($playWhenReady) transport=${transport != null}")
         if (transport != null) {
             if (playWhenReady) transport.play() else transport.pause()
+        }
+        return Futures.immediateVoidFuture()
+    }
+
+    override fun handleSeek(
+        mediaItemIndex: Int,
+        positionMs: Long,
+        seekCommand: @Player.Command Int,
+    ): ListenableFuture<*> {
+        val transport = sourceController?.transportControls
+            ?: return Futures.immediateVoidFuture()
+        Log.i(TAG, "handleSeek(cmd=$seekCommand, pos=$positionMs)")
+        when (seekCommand) {
+            Player.COMMAND_SEEK_TO_NEXT,
+            Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM -> transport.skipToNext()
+            Player.COMMAND_SEEK_TO_PREVIOUS,
+            Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM -> transport.skipToPrevious()
+            else -> transport.seekTo(positionMs)
         }
         return Futures.immediateVoidFuture()
     }
