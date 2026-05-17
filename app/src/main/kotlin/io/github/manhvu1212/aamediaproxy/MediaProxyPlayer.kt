@@ -129,13 +129,22 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
         // the skip / seek buttons as enabled iff we add them here; if we add them
         // unconditionally, the user can press skip on something like a podcast app that
         // doesn't expose it and the press is silently swallowed by the platform side.
+        //
+        // Note: we deliberately do NOT add the *_MEDIA_ITEM variants. AA's full
+        // now-playing screen treats those as timeline-level navigation and tries to
+        // advance currentMediaItemIndex — but our playlist only ever contains a single
+        // "bridge-active" item, so SimpleBasePlayer's optimistic state lands on an
+        // out-of-range index and AA renders a blank screen until something else
+        // invalidates the UI. Transport-level COMMAND_SEEK_TO_NEXT / _PREVIOUS stay on
+        // the current index, so the screen keeps showing the (updated) bridged item
+        // while transport.skipToNext()/skipToPrevious() forwards the actual command to
+        // the source. The mini-player widget already uses transport-level commands, so
+        // it was unaffected — this brings the full screen in line with it.
         if (actions and PlaybackState.ACTION_SKIP_TO_NEXT != 0L) {
             commandsBuilder.add(Player.COMMAND_SEEK_TO_NEXT)
-            commandsBuilder.add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
         }
         if (actions and PlaybackState.ACTION_SKIP_TO_PREVIOUS != 0L) {
             commandsBuilder.add(Player.COMMAND_SEEK_TO_PREVIOUS)
-            commandsBuilder.add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
         }
         if (actions and PlaybackState.ACTION_SEEK_TO != 0L) {
             commandsBuilder.add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
