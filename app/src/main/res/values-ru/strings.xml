@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AA Media Proxy</string>
-    <string name="listener_label">Медиамост</string>
     <string name="status_listener_missing">Доступ к уведомлениям не предоставлен</string>
     <string name="status_listener_ok">Доступ к уведомлениям: OK</string>
     <string name="status_no_session">Ни один медиасеанс не транслируется</string>
     <string name="status_active">Медиасеанс транслируется в Android Auto</string>
     <string name="action_open_settings">Открыть настройки доступа к уведомлениям</string>
     <string name="action_refresh">Обновить статус</string>
-    <string name="instructions">Это приложение транслирует медиаприложения (YouTube, подкасты и т. д.), которые не поддерживают Android Auto напрямую.\n\n1) Предоставьте этому приложению доступ к уведомлениям.\n2) Воспроизведите медиаконтент в любом приложении.\n3) Откройте Android Auto (необходимо включить режим разработчика и неизвестные источники).\n4) Появится медиавиджет \"AA Media Proxy\".\n\nПримечание: приложения, уже поддерживающие Android Auto (например, Spotify, YouTube Music), пропускаются во избежание дублирования виджетов.</string>
+    <string name="instructions">Это приложение транслирует медиаприложения (YouTube, подкасты и т. д.), которые не поддерживают Android Auto напрямую.\n\n1) Предоставьте этому приложению доступ к уведомлениям.\n2) Воспроизведите медиаконтент в любом приложении.\n3) Откройте Android Auto.\n4) Появится медиавиджет \"AA Media Proxy\".\n\nПримечание: приложения, уже поддерживающие Android Auto (например, Spotify, YouTube Music), пропускаются во избежание дублирования виджетов.</string>
     <string name="now_playing_header">Сейчас играет</string>
     <string name="no_media_title">Нет медиа</string>
     <string name="no_media_subtitle">Запустите воспроизведение в любом приложении, чтобы увидеть его здесь</string>

@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AA Media Proxy</string>
-    <string name="listener_label">メディアブリッジ</string>
     <string name="status_listener_missing">通知へのアクセスが許可されていません</string>
     <string name="status_listener_ok">通知へのアクセス: OK</string>
     <string name="status_no_session">ブリッジ中のメディアセッションはありません</string>
     <string name="status_active">メディアセッションを Android Auto にブリッジ中</string>
     <string name="action_open_settings">通知へのアクセス設定を開く</string>
     <string name="action_refresh">ステータスを更新</string>
-    <string name="instructions">このアプリは、Android Auto にネイティブ対応していないメディアアプリ（YouTube、ポッドキャストなど）をブリッジします。\n\n1) このアプリに通知へのアクセスを許可してください。\n2) 任意のアプリでメディアを再生します。\n3) Android Auto を開きます（開発者モード + 不明なソースを有効にする必要があります）。\n4) 「AA Media Proxy」メディアウィジェットが表示されます。\n\n注意: Android Auto に既に対応しているアプリ（Spotify、YouTube Music など）は、ウィジェットの重複を避けるためにスキップされます。</string>
+    <string name="instructions">このアプリは、Android Auto にネイティブ対応していないメディアアプリ（YouTube、ポッドキャストなど）をブリッジします。\n\n1) このアプリに通知へのアクセスを許可してください。\n2) 任意のアプリでメディアを再生します。\n3) Android Auto を開きます。\n4) 「AA Media Proxy」メディアウィジェットが表示されます。\n\n注意: Android Auto に既に対応しているアプリ（Spotify、YouTube Music など）は、ウィジェットの重複を避けるためにスキップされます。</string>
     <string name="now_playing_header">再生中</string>
     <string name="no_media_title">メディアなし</string>
     <string name="no_media_subtitle">任意のアプリでメディアを再生するとここに表示されます</string>

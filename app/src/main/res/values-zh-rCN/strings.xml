@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AA Media Proxy</string>
-    <string name="listener_label">媒体桥接</string>
     <string name="status_listener_missing">未授予通知使用权</string>
     <string name="status_listener_ok">通知使用权:OK</string>
     <string name="status_no_session">当前没有正在桥接的媒体会话</string>
     <string name="status_active">正在将媒体会话桥接到 Android Auto</string>
     <string name="action_open_settings">打开通知使用权设置</string>
     <string name="action_refresh">刷新状态</string>
-    <string name="instructions">本应用可将原生不支持 Android Auto 的媒体应用(YouTube、播客等)桥接到 Android Auto。\n\n1) 授予本应用通知使用权。\n2) 在任意应用中播放媒体。\n3) 打开 Android Auto(需启用开发者模式与未知来源)。\n4) 名为 \"AA Media Proxy\" 的媒体小部件即会出现。\n\n注意:已原生支持 Android Auto 的应用(如 Spotify、YouTube Music)将被跳过,以避免重复显示小部件。</string>
+    <string name="instructions">本应用可将原生不支持 Android Auto 的媒体应用(YouTube、播客等)桥接到 Android Auto。\n\n1) 授予本应用通知使用权。\n2) 在任意应用中播放媒体。\n3) 打开 Android Auto。\n4) 名为 \"AA Media Proxy\" 的媒体小部件即会出现。\n\n注意:已原生支持 Android Auto 的应用(如 Spotify、YouTube Music)将被跳过,以避免重复显示小部件。</string>
     <string name="now_playing_header">正在播放</string>
     <string name="no_media_title">无媒体</string>
     <string name="no_media_subtitle">在任意应用中播放媒体即可在此显示</string>

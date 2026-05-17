@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AA Media Proxy</string>
-    <string name="listener_label">Ponte multimediale</string>
     <string name="status_listener_missing">Accesso alle notifiche non concesso</string>
     <string name="status_listener_ok">Accesso alle notifiche: OK</string>
     <string name="status_no_session">Nessuna sessione multimediale instradata</string>
     <string name="status_active">Instradamento della sessione multimediale verso Android Auto</string>
     <string name="action_open_settings">Apri impostazioni di Accesso alle notifiche</string>
     <string name="action_refresh">Aggiorna stato</string>
-    <string name="instructions">Questa app instrada le app multimediali (YouTube, Podcast, ecc.) che non supportano Android Auto in modo nativo.\n\n1) Concedi a questa app l\'Accesso alle notifiche.\n2) Riproduci contenuti in una qualsiasi app.\n3) Apri Android Auto (Modalità sviluppatore + Origini sconosciute devono essere attive).\n4) Apparirà il widget multimediale \"AA Media Proxy\".\n\nNota: le app che già supportano Android Auto (come Spotify, YouTube Music) vengono ignorate per evitare widget duplicati.</string>
+    <string name="instructions">Questa app instrada le app multimediali (YouTube, Podcast, ecc.) che non supportano Android Auto in modo nativo.\n\n1) Concedi a questa app l\'Accesso alle notifiche.\n2) Riproduci contenuti in una qualsiasi app.\n3) Apri Android Auto.\n4) Apparirà il widget multimediale \"AA Media Proxy\".\n\nNota: le app che già supportano Android Auto (come Spotify, YouTube Music) vengono ignorate per evitare widget duplicati.</string>
     <string name="now_playing_header">In riproduzione</string>
     <string name="no_media_title">Nessun media</string>
     <string name="no_media_subtitle">Riproduci contenuti in una qualsiasi app per vederli qui</string>
