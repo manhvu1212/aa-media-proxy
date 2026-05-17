@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@drawable/ic_launcher_background" />
-    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <!-- Inset the foreground so the artwork sits comfortably inside the safe zone.
+         Without this, launchers that apply a tight shape mask (notably MIUI/HyperOS,
+         which exposes only ~66dp out of the 108dp canvas) show the car at ~90% of
+         the visible icon. 14dp inset on each side leaves an 80dp content area, so
+         the artwork renders at a consistent ~65% of the visible icon across both
+         stock Android and HyperOS launchers. -->
+    <foreground>
+        <inset
+            android:drawable="@drawable/ic_launcher_foreground"
+            android:insetLeft="14dp"
+            android:insetTop="14dp"
+            android:insetRight="14dp"
+            android:insetBottom="14dp" />
+    </foreground>
 </adaptive-icon>
