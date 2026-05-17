@@ -3,6 +3,7 @@ package io.github.manhvu1212.aamediaproxy
 import android.graphics.Bitmap
 import android.media.session.MediaController
 import android.media.session.PlaybackState
+import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
@@ -14,6 +15,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.SimpleBasePlayer
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.SettableFuture
 import java.io.ByteArrayOutputStream
 
 /**
@@ -22,6 +24,8 @@ import java.io.ByteArrayOutputStream
  * and mirrors that session's state back up so AA shows live metadata.
  */
 class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(applicationLooper) {
+
+    private val mainHandler = Handler(applicationLooper)
 
     private var sourceController: MediaController? = null
     private var sourcePackage: String? = null
@@ -32,8 +36,24 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
     private var lastArtBitmap: Bitmap? = null
     private var lastArtBytes: ByteArray? = null
 
+    // Optimistic override for the source's PlaybackState. transport.play()/pause() is
+    // async via Binder IPC — the source may not publish the new state for tens to
+    // hundreds of milliseconds. While we wait, getState() reports this pending intent
+    // (and handleSetPlayWhenReady holds its returned future open) so SimpleBasePlayer
+    // doesn't read the stale source state and revert AA's optimistic UI flip back to
+    // the previous play/pause icon.
+    private var pendingIntent: Boolean? = null
+    private var pendingFuture: SettableFuture<Any?>? = null
+    private val pendingTimeoutRunnable = Runnable {
+        Log.w(TAG, "Source did not reflect intent=$pendingIntent within ${PENDING_INTENT_TIMEOUT_MS}ms; releasing")
+        clearPendingIntent()
+        // Source never caught up — let AA see the source's real state now.
+        invalidateState()
+    }
+
     private val controllerCallback = object : MediaController.Callback() {
         override fun onPlaybackStateChanged(state: PlaybackState?) {
+            maybeCompletePendingIntent(state)
             invalidateState()
         }
 
@@ -71,6 +91,7 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
         }
         sourceController = null
         sourcePackage = null
+        clearPendingIntent()
         invalidateState()
     }
 
@@ -102,6 +123,7 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
         val pbState = controller.playbackState
         val sourceMeta = controller.metadata
         val actions = pbState?.actions ?: 0L
+        val sourceState = pbState?.state ?: PlaybackState.STATE_NONE
 
         // Only advertise transport commands the source actually supports. AA renders
         // the skip / seek buttons as enabled iff we add them here; if we add them
@@ -119,7 +141,34 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
             commandsBuilder.add(Player.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM)
         }
 
-        val isPlaying = pbState?.state == PlaybackState.STATE_PLAYING
+        // Map platform PlaybackState → Media3 (playWhenReady, playbackState).
+        //
+        // playWhenReady is *intent to play* — BUFFERING/CONNECTING/FF/REW/SKIPPING all
+        // mean the user wants playback, even though no audio is coming out right now.
+        // Conflating them with "paused" (the old behavior, which only counted
+        // STATE_PLAYING) caused AA to flash the pause button every time the source hit
+        // a transitional state — most visibly right after we called transport.play(),
+        // before the source had published STATE_PLAYING yet.
+        val sourceWantsToPlay = sourceState.isPlayingIntent()
+        // While a play/pause command we just issued hasn't been reflected by the source
+        // yet, honor the user's intent. Otherwise SimpleBasePlayer's post-handle
+        // getState() call reads the stale state and reverts AA.
+        val playWhenReady = pendingIntent ?: sourceWantsToPlay
+
+        val mediaPlaybackState = when (sourceState) {
+            PlaybackState.STATE_BUFFERING,
+            PlaybackState.STATE_CONNECTING,
+            PlaybackState.STATE_SKIPPING_TO_NEXT,
+            PlaybackState.STATE_SKIPPING_TO_PREVIOUS,
+            PlaybackState.STATE_SKIPPING_TO_QUEUE_ITEM -> Player.STATE_BUFFERING
+            PlaybackState.STATE_NONE,
+            PlaybackState.STATE_ERROR -> Player.STATE_IDLE
+            // STATE_STOPPED is treated as ready+paused so AA keeps the current item on
+            // screen rather than wiping back to "no media". The source can publish
+            // STATE_NONE explicitly if it wants the UI cleared.
+            else -> Player.STATE_READY
+        }
+
         val title = sourceMeta?.getString(android.media.MediaMetadata.METADATA_KEY_TITLE)
             ?: sourceMeta?.getString(android.media.MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
             ?: PLACEHOLDER_TITLE
@@ -156,16 +205,16 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
             .setMediaItem(mediaItem)
             .setDurationUs(durationUs)
 
-        // Snapshot position + the elapsed-realtime clock reading it was sampled at, so
-        // the supplier can extrapolate forward while playing. Without this, the seek
-        // bar in AA would freeze at whatever position we happened to publish — pause/
-        // resume events fire when the *state* changes, but the position keeps moving
-        // between events.
+        // The position extrapolator should only advance when the source is actually
+        // emitting audio — BUFFERING/CONNECTING freezes the clock at the source.
+        val isAdvancing = sourceState == PlaybackState.STATE_PLAYING ||
+            sourceState == PlaybackState.STATE_FAST_FORWARDING ||
+            sourceState == PlaybackState.STATE_REWINDING
         val basePositionMs = pbState?.position ?: 0L
         val baseUpdateTime = pbState?.lastPositionUpdateTime ?: 0L
         val playbackSpeed = pbState?.playbackSpeed ?: 1f
         val positionSupplier = PositionSupplier {
-            if (isPlaying && baseUpdateTime > 0L) {
+            if (isAdvancing && baseUpdateTime > 0L) {
                 val elapsed = SystemClock.elapsedRealtime() - baseUpdateTime
                 basePositionMs + (elapsed * playbackSpeed).toLong()
             } else {
@@ -175,8 +224,8 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
 
         return State.Builder()
             .setAvailableCommands(commandsBuilder.build())
-            .setPlaybackState(Player.STATE_READY)
-            .setPlayWhenReady(isPlaying, Player.PLAY_WHEN_READY_CHANGE_REASON_REMOTE)
+            .setPlaybackState(mediaPlaybackState)
+            .setPlayWhenReady(playWhenReady, Player.PLAY_WHEN_READY_CHANGE_REASON_REMOTE)
             .setPlaylist(listOf(mediaItemDataBuilder.build()))
             .setCurrentMediaItemIndex(0)
             .setContentPositionMs(positionSupplier)
@@ -186,10 +235,11 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
     override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {
         val transport = sourceController?.transportControls
         Log.i(TAG, "handleSetPlayWhenReady($playWhenReady) transport=${transport != null}")
-        if (transport != null) {
-            if (playWhenReady) transport.play() else transport.pause()
+        if (transport == null) {
+            return Futures.immediateVoidFuture()
         }
-        return Futures.immediateVoidFuture()
+        if (playWhenReady) transport.play() else transport.pause()
+        return startPendingIntent(playWhenReady)
     }
 
     override fun handleSeek(
@@ -215,6 +265,52 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
         return Futures.immediateVoidFuture()
     }
 
+    @MainThread
+    private fun startPendingIntent(playWhenReady: Boolean): ListenableFuture<*> {
+        // Replace any older pending intent — only the latest one matters. Completing
+        // the previous future lets SimpleBasePlayer move past it without waiting.
+        pendingFuture?.set(null)
+        mainHandler.removeCallbacks(pendingTimeoutRunnable)
+
+        pendingIntent = playWhenReady
+        val future = SettableFuture.create<Any?>()
+        pendingFuture = future
+        // Belt-and-braces timeout: if the source never publishes the matching state
+        // (it died silently, or it doesn't update PlaybackState in response to play()),
+        // we still have to release the future or AA's controller hangs forever.
+        mainHandler.postDelayed(pendingTimeoutRunnable, PENDING_INTENT_TIMEOUT_MS)
+        return future
+    }
+
+    @MainThread
+    private fun maybeCompletePendingIntent(state: PlaybackState?) {
+        val pending = pendingIntent ?: return
+        val sourceWantsToPlay = state?.state?.isPlayingIntent() == true
+        if (sourceWantsToPlay == pending) {
+            clearPendingIntent()
+        }
+    }
+
+    @MainThread
+    private fun clearPendingIntent() {
+        mainHandler.removeCallbacks(pendingTimeoutRunnable)
+        pendingIntent = null
+        pendingFuture?.set(null)
+        pendingFuture = null
+    }
+
+    private fun Int.isPlayingIntent(): Boolean = when (this) {
+        PlaybackState.STATE_PLAYING,
+        PlaybackState.STATE_BUFFERING,
+        PlaybackState.STATE_CONNECTING,
+        PlaybackState.STATE_FAST_FORWARDING,
+        PlaybackState.STATE_REWINDING,
+        PlaybackState.STATE_SKIPPING_TO_NEXT,
+        PlaybackState.STATE_SKIPPING_TO_PREVIOUS,
+        PlaybackState.STATE_SKIPPING_TO_QUEUE_ITEM -> true
+        else -> false
+    }
+
     private fun encodeArtwork(bitmap: Bitmap?): ByteArray? {
         if (bitmap === lastArtBitmap) return lastArtBytes
         lastArtBitmap = bitmap
@@ -230,5 +326,8 @@ class MediaProxyPlayer(applicationLooper: Looper) : SimpleBasePlayer(application
         private const val TAG = "AaMediaProxy.Player"
         const val ACTIVE_MEDIA_ID = "bridge-active"
         private const val PLACEHOLDER_TITLE = "AA Media Proxy"
+        // 2s is comfortably longer than any reasonable Binder + source-app response,
+        // but still bounded so AA never sees a frozen transport control button.
+        private const val PENDING_INTENT_TIMEOUT_MS = 2_000L
     }
 }
