@@ -11,8 +11,8 @@ android {
         applicationId = "io.github.manhvu1212.aamediaproxy"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.3.1"
+        versionCode = 5
+        versionName = "0.3.2"
     }
 
     // Release signing reads from ~/.gradle/gradle.properties (or matching env vars) so
