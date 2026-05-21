@@ -1,5 +1,6 @@
 package io.github.manhvu1212.aamediaproxy
 
+import android.app.Notification
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -11,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.service.notification.NotificationListenerService
+import android.service.notification.StatusBarNotification
 import android.util.Log
 import androidx.annotation.WorkerThread
 import androidx.car.app.connection.CarConnection
@@ -74,28 +76,11 @@ class MediaNotificationListener : NotificationListenerService() {
         }
     }
 
-    // The currently selected source controller. We hold a reference (and register a
-    // callback on it) so we can refresh [MediaInfo] whenever its metadata or playback
-    // state changes, independently of whether AA is connected.
+    // The currently selected source controller.
     private var selectedController: MediaController? = null
-    private val controllerCallback = object : MediaController.Callback() {
-        override fun onPlaybackStateChanged(state: PlaybackState?) {
-            publishMediaInfo()
-        }
 
-        override fun onMetadataChanged(metadata: android.media.MediaMetadata?) {
-            publishMediaInfo()
-        }
-
-        override fun onSessionDestroyed() {
-            mainHandler.post {
-                detachSelectedController()
-                publishMediaInfo()
-                // Re-evaluate in case another non-AA-native session is still alive.
-                refreshFromActiveSessions()
-            }
-        }
-    }
+    // Keep track of the active candidate controllers and their callbacks.
+    private val monitoredControllers = mutableMapOf<android.media.session.MediaSession.Token, Pair<MediaController, MediaController.Callback>>()
 
     private val sessionsListener =
         MediaSessionManager.OnActiveSessionsChangedListener { controllers ->
@@ -136,7 +121,7 @@ class MediaNotificationListener : NotificationListenerService() {
             carConnectionLive = null
             aaConnected = false
             isAaConnected = false
-            detachSelectedController()
+            clearMonitoredControllers()
             publishMediaInfo()
         }
         try {
@@ -149,7 +134,36 @@ class MediaNotificationListener : NotificationListenerService() {
 
     override fun onDestroy() {
         pmExecutor.shutdownNow()
+        clearMonitoredControllers()
         super.onDestroy()
+    }
+
+    override fun onNotificationPosted(sbn: StatusBarNotification?) {
+        super.onNotificationPosted(sbn)
+        val pkg = sbn?.packageName ?: return
+        if (pkg == packageName) return
+
+        val isMedia = sbn.notification?.extras?.containsKey(Notification.EXTRA_MEDIA_SESSION) == true
+        if (isMedia) {
+            Log.d(TAG, "Media notification posted/updated by $pkg, refreshing active sessions")
+            mainHandler.post {
+                refreshFromActiveSessions()
+            }
+        }
+    }
+
+    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
+        super.onNotificationRemoved(sbn)
+        val pkg = sbn?.packageName ?: return
+        if (pkg == packageName) return
+
+        val isMedia = sbn.notification?.extras?.containsKey(Notification.EXTRA_MEDIA_SESSION) == true
+        if (isMedia) {
+            Log.d(TAG, "Media notification removed by $pkg, refreshing active sessions")
+            mainHandler.post {
+                refreshFromActiveSessions()
+            }
+        }
     }
 
     private fun refreshFromActiveSessions() {
@@ -164,6 +178,9 @@ class MediaNotificationListener : NotificationListenerService() {
     private fun updateBridgedController(controllers: List<MediaController>) {
         val skip = aaNativePackages() + packageName
         val candidates = controllers.filterNot { it.packageName in skip }
+
+        // Update the callbacks on all candidates so we hear about their state/metadata changes.
+        updateMonitoredControllers(candidates)
 
         // getActiveSessions() is documented as priority-ordered, but a paused session can
         // still be listed first. Prefer one that's actively playing/buffering so we don't
@@ -191,25 +208,83 @@ class MediaNotificationListener : NotificationListenerService() {
     private fun selectController(newController: MediaController?) {
         val current = selectedController
         if (current?.sessionToken == newController?.sessionToken) {
-            // Same underlying session — getActiveSessions() hands out fresh MediaController
-            // wrappers on every callback, but [registerCallback] on the existing wrapper
-            // continues to deliver events for the same session, so no re-register needed.
+            // Same underlying session — publish metadata updates.
             publishMediaInfo()
             return
         }
-        detachSelectedController()
         selectedController = newController
-        newController?.registerCallback(controllerCallback)
         publishMediaInfo()
     }
 
-    private fun detachSelectedController() {
-        selectedController?.let {
+    private fun updateMonitoredControllers(candidates: List<MediaController>) {
+        val newTokens = candidates.map { it.sessionToken }.toSet()
+
+        // 1. Unregister and remove controllers that are no longer in the candidates list
+        val iterator = monitoredControllers.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (entry.key !in newTokens) {
+                val (controller, callback) = entry.value
+                try {
+                    controller.unregisterCallback(callback)
+                    Log.d(TAG, "Unregistered callback for ${controller.packageName}")
+                } catch (_: Throwable) {
+                }
+                iterator.remove()
+            }
+        }
+
+        // 2. Register and add new controllers
+        for (controller in candidates) {
+            val token = controller.sessionToken
+            if (token !in monitoredControllers) {
+                val callback = object : MediaController.Callback() {
+                    override fun onPlaybackStateChanged(state: PlaybackState?) {
+                        mainHandler.post {
+                            Log.d(TAG, "Playback state changed for ${controller.packageName}: ${state?.state}")
+                            // Re-evaluate session selection when any candidate's playback state changes.
+                            // E.g., if a paused/idle session starts playing, we want to switch to it.
+                            refreshFromActiveSessions()
+                        }
+                    }
+
+                    override fun onMetadataChanged(metadata: android.media.MediaMetadata?) {
+                        mainHandler.post {
+                            // If this is the selected controller, publish updated media info
+                            if (selectedController?.sessionToken == token) {
+                                Log.d(TAG, "Metadata changed for selected controller ${controller.packageName}")
+                                publishMediaInfo()
+                            }
+                        }
+                    }
+
+                    override fun onSessionDestroyed() {
+                        mainHandler.post {
+                            Log.d(TAG, "Session destroyed for ${controller.packageName}")
+                            // Re-evaluate in case another session is still alive
+                            refreshFromActiveSessions()
+                        }
+                    }
+                }
+                try {
+                    controller.registerCallback(callback, mainHandler)
+                    monitoredControllers[token] = Pair(controller, callback)
+                    Log.d(TAG, "Registered callback for ${controller.packageName}")
+                } catch (t: Throwable) {
+                    Log.e(TAG, "Failed to register callback for ${controller.packageName}", t)
+                }
+            }
+        }
+    }
+
+    private fun clearMonitoredControllers() {
+        for ((controller, callback) in monitoredControllers.values) {
             try {
-                it.unregisterCallback(controllerCallback)
+                controller.unregisterCallback(callback)
             } catch (_: Throwable) {
             }
         }
+        monitoredControllers.clear()
         selectedController = null
     }
 
