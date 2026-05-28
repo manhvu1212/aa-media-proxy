@@ -17,16 +17,32 @@ import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.car.app.connection.CarConnection
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.Observer
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var statusListener: TextView
     private lateinit var statusSession: TextView
+    private lateinit var statusCarConnection: TextView
     private lateinit var mediaArtwork: ImageView
     private lateinit var mediaTitle: TextView
     private lateinit var mediaSubtitle: TextView
     private lateinit var mediaState: TextView
     private lateinit var mediaPackage: TextView
+    private lateinit var btnOpenSettings: Button
+
+    private var carConnectionLive: LiveData<Int>? = null
+    private val carConnectionObserver = Observer<Int> { type ->
+        val connected = type == CarConnection.CONNECTION_TYPE_NATIVE ||
+                type == CarConnection.CONNECTION_TYPE_PROJECTION
+        statusCarConnection.text = if (connected) {
+            getString(R.string.status_car_connected)
+        } else {
+            getString(R.string.status_car_disconnected)
+        }
+    }
 
     // Fired on the main thread by MediaNotificationListener whenever the selected source
     // (or its metadata / playback state) changes. The listener also fires once with the
@@ -65,13 +81,19 @@ class MainActivity : AppCompatActivity() {
 
         statusListener = findViewById(R.id.statusListener)
         statusSession = findViewById(R.id.statusSession)
+        statusCarConnection = findViewById(R.id.statusCarConnection)
         mediaArtwork = findViewById(R.id.mediaArtwork)
         mediaTitle = findViewById(R.id.mediaTitle)
         mediaSubtitle = findViewById(R.id.mediaSubtitle)
         mediaState = findViewById(R.id.mediaState)
         mediaPackage = findViewById(R.id.mediaPackage)
 
-        findViewById<Button>(R.id.btnOpenSettings).setOnClickListener {
+        val live = CarConnection(this).type
+        carConnectionLive = live
+        live.observe(this, carConnectionObserver)
+
+        btnOpenSettings = findViewById(R.id.btnOpenSettings)
+        btnOpenSettings.setOnClickListener {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
         }
         findViewById<Button>(R.id.btnRefresh).setOnClickListener { refreshStatus() }
@@ -117,6 +139,10 @@ class MainActivity : AppCompatActivity() {
         statusSession.text =
             if (enabled) getString(R.string.status_active)
             else getString(R.string.status_no_session)
+        btnOpenSettings.visibility = if (enabled) android.view.View.GONE else android.view.View.VISIBLE
+        if (enabled) {
+            MediaNotificationListener.requestRefresh()
+        }
     }
 
     private fun renderMediaInfo(info: MediaNotificationListener.MediaInfo?) {

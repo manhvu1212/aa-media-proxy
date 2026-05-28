@@ -16,4 +16,6 @@
     <string name="state_idle">⏹  Không hoạt động</string>
     <string name="state_buffering">⟳  Đang đệm…</string>
     <string name="source_package">Nguồn: %1$s</string>
+    <string name="status_car_connected">Android Auto: Đã kết nối</string>
+    <string name="status_car_disconnected">Android Auto: Đã ngắt kết nối</string>
 </resources>

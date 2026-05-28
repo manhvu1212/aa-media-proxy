@@ -16,4 +16,6 @@
     <string name="state_idle">⏹  Idle</string>
     <string name="state_buffering">⟳  Buffering…</string>
     <string name="source_package">Source: %1$s</string>
+    <string name="status_car_connected">Android Auto: Connected</string>
+    <string name="status_car_disconnected">Android Auto: Disconnected</string>
 </resources>

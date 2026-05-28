@@ -15,6 +15,9 @@ import androidx.media3.common.MediaItem
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.CommandButton
+import androidx.media3.session.SessionResult
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -40,8 +43,17 @@ class PlaybackService : MediaLibraryService() {
         super.onCreate()
         Log.i(TAG, "PlaybackService onCreate")
         player = MediaProxyPlayer(mainLooper)
-        librarySession = MediaLibrarySession.Builder(this, player, LibraryCallback()).build()
+        val session = MediaLibrarySession.Builder(this, player, LibraryCallback()).build()
+        librarySession = session
         instance = this
+
+        val refreshCommand = SessionCommand(CUSTOM_ACTION_REFRESH, android.os.Bundle.EMPTY)
+        val refreshButton = CommandButton.Builder()
+            .setDisplayName(getString(R.string.action_refresh))
+            .setSessionCommand(refreshCommand)
+            .setIconResId(android.R.drawable.ic_popup_sync)
+            .build()
+        session.setCustomLayout(ImmutableList.of(refreshButton))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -133,7 +145,27 @@ class PlaybackService : MediaLibraryService() {
                 "onConnect from pkg=${controller.packageName} uid=${controller.uid} " +
                     "controllerVersion=${controller.controllerVersion} isTrusted=${controller.isTrusted}"
             )
-            return MediaSession.ConnectionResult.AcceptedResultBuilder(session).build()
+            val connectionResult = super.onConnect(session, controller)
+            val availableSessionCommands = connectionResult.availableSessionCommands.buildUpon()
+                .add(SessionCommand(CUSTOM_ACTION_REFRESH, android.os.Bundle.EMPTY))
+                .build()
+            return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                .setAvailableSessionCommands(availableSessionCommands)
+                .build()
+        }
+
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: SessionCommand,
+            args: android.os.Bundle
+        ): ListenableFuture<SessionResult> {
+            Log.i(TAG, "onCustomCommand customAction=${customCommand.customAction} from pkg=${controller.packageName}")
+            if (customCommand.customAction == CUSTOM_ACTION_REFRESH) {
+                MediaNotificationListener.requestRefresh()
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+            return super.onCustomCommand(session, controller, customCommand, args)
         }
 
         override fun onGetLibraryRoot(
@@ -187,6 +219,7 @@ class PlaybackService : MediaLibraryService() {
 
     companion object {
         private const val TAG = "AaMediaProxy.Service"
+        private const val CUSTOM_ACTION_REFRESH = "action.REFRESH"
         private const val ROOT_ID = "root"
         // Match Media3 DefaultMediaNotificationProvider defaults so its notification
         // replaces ours rather than stacking.

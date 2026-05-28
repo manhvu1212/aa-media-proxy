@@ -71,8 +71,10 @@ class MediaNotificationListener : NotificationListenerService() {
             forwardCurrentToPlaybackService()
         } else {
             // AA went away → tear PlaybackService (and its MediaSession / notification)
-            // down. The in-app MediaInfo snapshot stays live for MainActivity to display.
+            // down.
             PlaybackService.requestStop(this)
+            clearMonitoredControllers()
+            publishMediaInfo()
         }
     }
 
@@ -176,6 +178,11 @@ class MediaNotificationListener : NotificationListenerService() {
     }
 
     private fun updateBridgedController(controllers: List<MediaController>) {
+        if (!aaConnected) {
+            clearMonitoredControllers()
+            publishMediaInfo()
+            return
+        }
         val skip = aaNativePackages() + packageName
         val candidates = controllers.filterNot { it.packageName in skip }
 
@@ -422,6 +429,13 @@ class MediaNotificationListener : NotificationListenerService() {
 
         fun removeMediaInfoListener(listener: (MediaInfo?) -> Unit) {
             infoListeners -= listener
+        }
+
+        fun requestRefresh() {
+            val inst = instance ?: return
+            inst.mainHandler.post {
+                inst.refreshFromActiveSessions()
+            }
         }
     }
 }
