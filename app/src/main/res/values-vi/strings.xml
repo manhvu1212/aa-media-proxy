@@ -18,4 +18,6 @@
     <string name="source_package">Nguồn: %1$s</string>
     <string name="status_car_connected">Android Auto: Đã kết nối</string>
     <string name="status_car_disconnected">Android Auto: Đã ngắt kết nối</string>
+    <string name="action_sync_media">Đồng bộ nhạc</string>
+    <string name="sync_media_subtitle">Bấm để tìm và đồng bộ nhạc từ điện thoại</string>
 </resources>

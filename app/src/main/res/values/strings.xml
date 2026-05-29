@@ -18,4 +18,6 @@
     <string name="source_package">Source: %1$s</string>
     <string name="status_car_connected">Android Auto: Connected</string>
     <string name="status_car_disconnected">Android Auto: Disconnected</string>
+    <string name="action_sync_media">Sync Media</string>
+    <string name="sync_media_subtitle">Tap to find and sync media from phone</string>
 </resources>
